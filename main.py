@@ -1,6 +1,7 @@
 import json
 import time
 from math import radians, cos, sin, asin, sqrt
+import enum
 
 
 """  
@@ -14,6 +15,7 @@ visited = []
 viableNodes = []
 path = []
 
+algorithms = ["ucs", "aStar"]
 run = 0
 
 f = open('coord.json')
@@ -110,28 +112,49 @@ def getEuclidean(v,w):
     return (((v[0] - w[0])**2 + (v[1] - w[1])**2)**0.5)
 
 def getHaversine(v,w):
-    
-    v = getCoord(v)
-    w = getCoord(w)
+
+    """ 
+        This method was adapted from stackoverflow
+        https://stackoverflow.com/questions/4913349/haversine-formula-in-python-bearing-and-distance-between-two-gps-points
+        answered Jul 30, 2017 at 3:00
+        by: Clay
+
+    """
+
+    #TODO: Fix bug math err when Start: 50 End: 1 
 
     R = 6372.8 #Approx of Earth's radius (3959.87433 miles/6372.8 km)
 
-    diffLat = radians((w[0]) - v[0])
-    diffLon = radians(w[1] - v[1])
-    lat1 = radians(v[0])
-    lat2 = radians(w[0])
+    v = getCoord(v)
+    w = getCoord(w)
+    c = 0
 
-    a = sin(diffLat/2)**2 + cos(lat1)*cos(lat2)*sin(diffLon/2)**2
-    c = 2*asin(sqrt(a))
+    try:
+       
+        diffLat = radians((w[0]) - v[0])
+        diffLon = radians(w[1] - v[1])
+        lat1 = radians(v[0])
+        lat2 = radians(w[0])
+
+        a = sin(diffLat/2)**2 + cos(lat1)*cos(lat2)*sin(diffLon/2)**2
+        c = 2*asin(sqrt(a))
+
+    except:
+        print("Unable to calculate Haversine Distance.")
 
     return R * c
  
 
 def findPath(start, end):
 
+    #TODO: Fix bug 'NoneType' object is not subscriptable
+    #Probable cause tracePath not in correct order
+
     tracePath = build_dict(viableNodes, key="current")
     currentNode = end
     p = []
+
+    print(tracePath)
 
     while (currentNode != start):
         node = tracePath.get(currentNode)
@@ -166,6 +189,7 @@ def getPathDist(path):
  """
 
 def main():
+
     option = int(input("Please select option or enter '-1' to terminate program:        \
                         \n1) Task 1: Relaxed ver (TBC)                                  \
                         \n2) Task 2: UCS                                                \
@@ -173,41 +197,48 @@ def main():
                         \n"))                                                   
 
 
-    if (option > 0 and option < 4):
-        start = input("Please enter the start node: ")
-        end = input("Please enter the end node: ")
-        print("Processing...")
-
     if (option == 1):
-        stime = time.time()
-        #TODO: Task 1
-        etime = time.time()
-
-        print("Total time elapsed: {}\n".format(etime-stime))
+        mode = ""
 
     if (option == 2):
-        stime = time.time()
-        aStar(start, end, "aStar")
-        etime = time.time()
-
-        print("Total time elapsed: {}\n".format(etime-stime))
+        mode = "ucs"
+        print("**Task 2: UCS selected**")
     
     elif (option == 3):
-        stime = time.time()
-        ucs(start, end, "ucs")
-        etime = time.time()
-
-        print("Total time elapsed: {}\n".format(etime-stime))
+        mode = "aStar"
+        print("**Task 3: A* with Haversine Distance selected**")
 
     else:
-        
         if (option != -1):
             print("Please enter option: '1', '2', or '3'\n")
+
+    if (option > 0 and option < 4):
+        if any(algo == mode for algo in algorithms):
+
+            start = input("Please enter the start node: ")
+            end = input("Please enter the end node: ")
+
+            if (int(start) > 0 and int(end) < 264347):
+                print("Processing...\n")
+
+                stime = time.time()
+                search(start, end, mode)
+                etime = time.time()
+
+                print("Total time elapsed: {}\n".format(etime-stime))
+
+            else:
+                print("\nPlease enter nodes between 1 and 264346.\n")
 
 
     return option
 
-def aStar(start, end, mode):
+def search(start, end, mode):
+
+    total = 0
+
+    if (mode == 'aStar'):
+        total = getHaversine(start, end)
 
     if (start == end):
         print("Start node and end node should not be the same.")
@@ -217,7 +248,7 @@ def aStar(start, end, mode):
             "current": start,
             "cost": 0,
             "dist": 0,
-            "total": getHaversine(start, end),
+            "total": total,
             "prev": 0
     }) 
     
@@ -228,7 +259,7 @@ def aStar(start, end, mode):
         nextNode = processAdj(nextNode, end, mode)
 
 
-    path = findPath(start, visited[-1]['current'])
+    path = findPath(start, end)
 
     #Print results
     strPath = getStrPath(path)
@@ -257,7 +288,8 @@ def ucs(start, end, mode):
     while (not any (node['current'] == end for node in visited)):
         nextNode = processAdj(nextNode, end, mode)
 
-    path = findPath(start, visited[-1]['current'])
+    path = findPath(start, end)
+
     #Print results
     strPath = getStrPath(path)
     pathCost = path[-1]['cost']
