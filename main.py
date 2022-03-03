@@ -121,8 +121,6 @@ def getHaversine(v,w):
 
     """
 
-    #TODO: Fix bug math err when Start: 50 End: 1 
-
     R = 6372.8 #Approx of Earth's radius (3959.87433 miles/6372.8 km)
 
     v = getCoord(v)
@@ -131,15 +129,16 @@ def getHaversine(v,w):
 
     try:
        
-        diffLat = radians((w[0]) - v[0])
-        diffLon = radians(w[1] - v[1])
-        lat1 = radians(v[0])
-        lat2 = radians(w[0])
+        diffLat = radians((w[1]) - v[1])
+        diffLon = radians(w[0] - v[0])
+        lat1 = radians(v[1])
+        lat2 = radians(w[1])
 
         a = sin(diffLat/2)**2 + cos(lat1)*cos(lat2)*sin(diffLon/2)**2
         c = 2*asin(sqrt(a))
 
     except:
+       
         print("Unable to calculate Haversine Distance.")
 
     return R * c
@@ -147,19 +146,23 @@ def getHaversine(v,w):
 
 def findPath(start, end):
 
-    #TODO: Fix bug 'NoneType' object is not subscriptable
-    #Probable cause tracePath not in correct order
-
     tracePath = build_dict(viableNodes, key="current")
     currentNode = end
     p = []
 
-    print(tracePath)
+    # print(tracePath)
+
+    # if(tracePath[-1]['current'] == start):
+        
+    # print(tracePath.get(currentNode))
 
     while (currentNode != start):
         node = tracePath.get(currentNode)
         p.append(node)
-        currentNode = node['prev'] 
+        currentNode = node['prev']
+        # if (currentNode == 0):
+        #     print(currentNode)
+        #     break
 
     p.reverse()
     return p
@@ -270,34 +273,11 @@ def search(start, end, mode):
             "\nTotal path cost: {}".format(pathCost), 
                 "\nTotal path distance: {}".format(pathDist))
 
-def ucs(start, end, mode):
-    
-    if (start == end):
-        print("Start node and end node should not be the same.")
-        return
+    queue.clear()
+    visited.clear()
+    viableNodes.clear()
+    path.clear()
 
-    queue.append({
-            "current": start,
-            "cost": 0,
-            "dist": 0,
-            "prev": 0
-    }) 
-    
-    nextNode = processAdj(queue[0], end, mode)
-
-    while (not any (node['current'] == end for node in visited)):
-        nextNode = processAdj(nextNode, end, mode)
-
-    path = findPath(start, end)
-
-    #Print results
-    strPath = getStrPath(path)
-    pathCost = path[-1]['cost']
-    pathDist = getPathDist(path)
-
-    print(strPath, 
-            "\nTotal path cost: {}".format(pathCost), 
-                "\nTotal path distance: {}".format(pathDist))
 
 
 def processAdj(currentNode, end, mode):
@@ -322,12 +302,12 @@ def processAdj(currentNode, end, mode):
                     "prev": currentNode['current']
                 }) 
 
-            if not any (node['current'] == nextNode for node in queue) and not any(node['current'] == nextNode for node in visited):
+            if not any (node['current'] == nextNode for node in visited) and not any(node['current'] == nextNode for node in queue):
                 queue.append(nextNodeInfo)
 
             #TODO: else compare costs
             
-                
+        
 
         visited.append(queue[0]) 
         viableNodes.append(queue[0])
